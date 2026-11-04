@@ -19,6 +19,11 @@ public class RobotObstacleAgent : Agent
     private Vector3 startPos;
     private Quaternion startRot;
 
+    [Header("Ortam Yönetimi")]
+    [SerializeField] private EnvironmentManager environmentManager;
+
+    private bool episodeEnding;
+
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody>();
@@ -29,21 +34,21 @@ public class RobotObstacleAgent : Agent
 
     public override void OnEpisodeBegin()
     {
-        // Ajanın hızını ve konumunu sıfırla
-        if (rb != null)
+        episodeEnding = false;
+
+        if (environmentManager == null)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            Debug.LogError("EnvironmentManager atanmamış!");
+            return;
         }
 
-        transform.localPosition = startPos;
-        transform.localRotation = startRot;
+        environmentManager.ResetEnvironment();
 
-        // Hedefi platform üzerinde rastgele bir konuma taşı
-        if (target != null)
-        {
-            target.localPosition = new Vector3(Random.Range(-4f, 4f), 0.5f, Random.Range(-4f, 4f));
-        }
+        movement.ResetPose(
+
+            transform.position,
+            transform.rotation
+        );
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -130,5 +135,27 @@ public class RobotObstacleAgent : Agent
             AddReward(-1.0f); // Engele çarpma cezası
             EndEpisode();
         }
+    }
+
+    private void FinishEpisodeIfNeeded(EpisodeEndReason reason)
+    {
+        if (episodeEnding || reason == EpisodeEndReason.None)
+            return;
+
+        episodeEnding = true;
+
+        if (reason == EpisodeEndReason.TargetReached)
+        {
+            AddReward(1.0f);
+        }
+        else if (
+            reason == EpisodeEndReason.ObstacleCollision ||
+            reason == EpisodeEndReason.OutOfBounds
+        )
+        {
+            AddReward(-1.0f);
+        }
+
+        EndEpisode();
     }
 }

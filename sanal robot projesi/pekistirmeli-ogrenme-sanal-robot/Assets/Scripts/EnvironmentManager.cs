@@ -77,14 +77,12 @@ public class EnvironmentManager : MonoBehaviour
 
     private void Awake()
     {
-        // Robot henüz eklenmemiþ olabilir.
         if (robot != null)
         {
             robotRigidbody =
                 robot.GetComponent<Rigidbody>();
         }
 
-        // Target'ýn baþlangýç konumunu kaydet.
         if (target != null)
         {
             targetInitialPosition =
@@ -94,7 +92,6 @@ public class EnvironmentManager : MonoBehaviour
                 target.rotation;
         }
 
-        // Obstacle ana nesnesi atanmýþ mý?
         if (obstacleRoot == null)
         {
             Debug.LogError(
@@ -104,14 +101,11 @@ public class EnvironmentManager : MonoBehaviour
             return;
         }
 
-        // Altýndaki tüm Obstacle componentlerini bul.
         Obstacle[] foundObstacles =
             obstacleRoot.GetComponentsInChildren<Obstacle>();
 
         obstacles.AddRange(foundObstacles);
 
-        // Test modunda dönmek için baþlangýç
-        // konumlarýný kaydet.
         foreach (Obstacle obstacle in obstacles)
         {
             obstacle.SaveInitialTransform();
@@ -150,8 +144,7 @@ public class EnvironmentManager : MonoBehaviour
 
     private void ResetRobot()
     {
-        // Robot henüz projeye eklenmediyse
-        // reset iþlemini atla.
+
         if (robot == null || spawnPoint == null)
         {
             return;
@@ -215,7 +208,6 @@ public class EnvironmentManager : MonoBehaviour
                     new Vector3(
                         Random.Range(minX, maxX),
 
-                        // Obstacle yüksekliði deðiþmesin.
                         obstacle.transform.position.y,
 
                         Random.Range(minZ, maxZ)
@@ -228,7 +220,6 @@ public class EnvironmentManager : MonoBehaviour
                     continue;
                 }
 
-                // DOÐRU METOT BURASI
                 obstacle.SetPosition(
                     candidatePosition
                 );
@@ -263,7 +254,7 @@ public class EnvironmentManager : MonoBehaviour
         Vector3 candidate,
         List<Vector3> placedPositions)
     {
-        // SpawnPoint'in üzerine obstacle gelmesin.
+
         if (spawnPoint != null)
         {
             if (HorizontalDistance(
@@ -275,7 +266,6 @@ public class EnvironmentManager : MonoBehaviour
             }
         }
 
-        // Target'ýn üzerine obstacle gelmesin.
         if (target != null)
         {
             if (HorizontalDistance(
@@ -287,7 +277,6 @@ public class EnvironmentManager : MonoBehaviour
             }
         }
 
-        // Obstacle'lar birbirinin çok yakýnýna gelmesin.
         foreach (
             Vector3 otherPosition
             in placedPositions
@@ -337,20 +326,18 @@ public class EnvironmentManager : MonoBehaviour
 
     public EpisodeEndReason CheckEpisodeEnd()
     {
-        // Engel veya duvar çarpýþmasý bildirildiyse.
+
         if (obstacleHit)
         {
             return
                 EpisodeEndReason.ObstacleCollision;
         }
 
-        // Robot henüz yoksa kontrol yapýlamaz.
         if (robot == null)
         {
             return EpisodeEndReason.None;
         }
 
-        // Robot hedefe ulaþtý mý?
         if (target != null)
         {
             float distanceToTarget =
@@ -364,12 +351,11 @@ public class EnvironmentManager : MonoBehaviour
                 <= targetReachDistance
             )
             {
-                return
+                return  
                     EpisodeEndReason.TargetReached;
             }
         }
 
-        // Robot arena dýþýna çýktý mý?
         if (
             robot.position.y < -1f ||
             robot.position.x < -10.5f ||
@@ -386,7 +372,6 @@ public class EnvironmentManager : MonoBehaviour
     }
 
 
-    // Klavye input'u kullanmadan reset test etmek için.
     [ContextMenu("TEST - Reset Environment")]
     private void TestResetEnvironment()
     {
@@ -400,5 +385,31 @@ public class EnvironmentManager : MonoBehaviour
         }
 
         ResetEnvironment();
+    }
+
+    [ContextMenu("TEST - Check Episode End")]
+    private void TestCheckEpisodeEnd()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("Önce Play moduna gir.");
+            return;
+        }
+
+        Debug.Log("Episode sonucu: " + CheckEpisodeEnd());
+    }
+
+    [ContextMenu("TEST - Simulate Obstacle Hit")]
+    private void TestSimulateObstacleHit()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("Önce Play moduna gir.");
+            return;
+        }
+
+        RegisterObstacleHit();
+
+        Debug.Log("Episode sonucu: " + CheckEpisodeEnd());
     }
 }
