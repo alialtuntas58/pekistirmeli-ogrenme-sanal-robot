@@ -2,7 +2,11 @@ using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
+[RequireComponent(typeof(RobotMovement))]
 public class RobotObstacleAgent : Agent
 {
     [Header("Hedef ve Hareket Ayarları")]
@@ -11,12 +15,14 @@ public class RobotObstacleAgent : Agent
     public float turnSpeed = 180f;
 
     private Rigidbody rb;
+    private RobotMovement movement;
     private Vector3 startPos;
     private Quaternion startRot;
 
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody>();
+        movement = GetComponent<RobotMovement>();
         startPos = transform.localPosition;
         startRot = transform.localRotation;
     }
@@ -68,11 +74,7 @@ public class RobotObstacleAgent : Agent
         float moveInput = actions.ContinuousActions[0];
         float turnInput = actions.ContinuousActions[1];
 
-        Vector3 move = transform.forward * moveInput * moveSpeed * Time.fixedDeltaTime;
-        rb.MovePosition(rb.position + move);
-
-        Quaternion turn = Quaternion.Euler(0f, turnInput * turnSpeed * Time.fixedDeltaTime, 0f);
-        rb.MoveRotation(rb.rotation * turn);
+        movement.Move(moveInput, turnInput, moveSpeed, turnSpeed);
 
         // Hedefe daha hızlı ulaşmasını teşvik etmek için adım başı ufak ceza
         AddReward(-0.001f);
@@ -88,8 +90,18 @@ public class RobotObstacleAgent : Agent
     public override void Heuristic(in ActionBuffers actionsOut)
     {
         var continuousActions = actionsOut.ContinuousActions;
+#if ENABLE_INPUT_SYSTEM
+        var keyboard = Keyboard.current;
+        continuousActions[0] = keyboard == null ? 0f :
+            ((keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) ? 1f : 0f) -
+            ((keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) ? 1f : 0f);
+        continuousActions[1] = keyboard == null ? 0f :
+            ((keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) ? 1f : 0f) -
+            ((keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) ? 1f : 0f);
+#else
         continuousActions[0] = Input.GetAxis("Vertical");   // W-S veya Yukarı-Aşağı Ok
         continuousActions[1] = Input.GetAxis("Horizontal"); // A-D veya Sol-Sağ Ok
+#endif
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -99,7 +111,7 @@ public class RobotObstacleAgent : Agent
             AddReward(1.0f); // Hedefe ulaşma büyük pozitif ödül
             EndEpisode();
         }
-        else if (collision.gameObject.CompareTag("Obstacle"))
+        else if (collision.gameObject.CompareTag("Obstacle") || collision.gameObject.tag == "Wall")
         {
             AddReward(-1.0f); // Engele çarpma cezası
             EndEpisode();
@@ -113,7 +125,7 @@ public class RobotObstacleAgent : Agent
             AddReward(1.0f); // Hedefe ulaşma büyük pozitif ödül
             EndEpisode();
         }
-        else if (other.CompareTag("Obstacle"))
+        else if (other.CompareTag("Obstacle") || other.tag == "Wall")
         {
             AddReward(-1.0f); // Engele çarpma cezası
             EndEpisode();

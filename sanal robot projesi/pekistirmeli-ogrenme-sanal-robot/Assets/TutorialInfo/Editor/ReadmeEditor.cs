@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.IO;
 using Unity.Scripting.LifecycleManagement;
@@ -65,8 +65,11 @@ sealed partial class ReadmeEditor : Editor
         var readme = (Readme)target;
 
         VisualElement root = new();
-        root.styleSheets.Add(readme.commonStyle);
-        root.styleSheets.Add(EditorGUIUtility.isProSkin ? readme.darkStyle : readme.lightStyle);
+        if (readme.commonStyle != null)
+            root.styleSheets.Add(readme.commonStyle);
+        var themeStyle = EditorGUIUtility.isProSkin ? readme.darkStyle : readme.lightStyle;
+        if (themeStyle != null)
+            root.styleSheets.Add(themeStyle);
 
         VisualElement ChainWithClass(VisualElement created, string className)
         {
